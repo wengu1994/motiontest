@@ -48,6 +48,34 @@
             cursor: pointer;
             margin: 10px 0;
         }
+        .control-panel {
+            background-color: #f8f8f8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+        .parameter-control {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .parameter-control label {
+            min-width: 120px;
+        }
+        .parameter-control input[type="range"] {
+            flex: 1;
+        }
+        .parameter-control input[type="number"] {
+            width: 80px;
+        }
+        .parameter-description {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+            margin-left: 120px;
+        }
     </style>
 </head>
 <body>
@@ -58,6 +86,37 @@
         <h2>摇一摇次数</h2>
         <div id="shakeCount">0</div>
         <button class="reset-button" id="resetButton">重置计数</button>
+    </div>
+
+    <div class="control-panel">
+        <h2>参数调整</h2>
+        
+        <div class="parameter-control">
+            <label for="threshold">灵敏度阈值:</label>
+            <input type="range" id="thresholdSlider" min="5" max="30" value="15">
+            <input type="number" id="thresholdInput" value="15" min="5" max="30">
+            <div class="parameter-description">
+                数值越小越容易触发摇动检测，建议范围：5-30
+            </div>
+        </div>
+
+        <div class="parameter-control">
+            <label for="timeout">检测间隔(ms):</label>
+            <input type="range" id="timeoutSlider" min="500" max="2000" step="100" value="1000">
+            <input type="number" id="timeoutInput" value="1000" min="500" max="2000" step="100">
+            <div class="parameter-description">
+                两次摇动之间的最小时间间隔，防止重复计数，单位：毫秒
+            </div>
+        </div>
+
+        <div class="parameter-control">
+            <label for="diffTime">采样间隔(ms):</label>
+            <input type="range" id="diffTimeSlider" min="50" max="200" step="10" value="100">
+            <input type="number" id="diffTimeInput" value="100" min="50" max="200" step="10">
+            <div class="parameter-description">
+                加速度数据的采样时间间隔，影响检测的精确度，单位：毫秒
+            </div>
+        </div>
     </div>
 
     <div id="orientation-status">当前方向：检测中...</div>
@@ -79,9 +138,10 @@
         let shakeCount = 0;
         let lastX = 0, lastY = 0, lastZ = 0;
         let lastUpdate = 0;
-        const shakeThreshold = 15;
-        const shakeTimeout = 1000;
+        let shakeThreshold = 15;
+        let shakeTimeout = 1000;
         let lastShake = 0;
+        let diffTimeThreshold = 100;
 
         button.addEventListener('click', async () => {
             try {
@@ -123,7 +183,7 @@
             
             if (!acceleration) return;
 
-            if ((currentTime - lastUpdate) > 100) {
+            if ((currentTime - lastUpdate) > diffTimeThreshold) {
                 const diffTime = currentTime - lastUpdate;
                 lastUpdate = currentTime;
 
@@ -178,6 +238,36 @@
                 }
             }
         }
+
+        function setupParameterControl(sliderId, inputId, callback) {
+            const slider = document.getElementById(sliderId);
+            const input = document.getElementById(inputId);
+
+            slider.addEventListener('input', () => {
+                input.value = slider.value;
+                callback(Number(slider.value));
+            });
+
+            input.addEventListener('change', () => {
+                let value = Number(input.value);
+                value = Math.max(Number(input.min), Math.min(Number(input.max), value));
+                input.value = value;
+                slider.value = value;
+                callback(value);
+            });
+        }
+
+        setupParameterControl('thresholdSlider', 'thresholdInput', (value) => {
+            shakeThreshold = value;
+        });
+
+        setupParameterControl('timeoutSlider', 'timeoutInput', (value) => {
+            shakeTimeout = value;
+        });
+
+        setupParameterControl('diffTimeSlider', 'diffTimeInput', (value) => {
+            diffTimeThreshold = value;
+        });
     </script>
 </body>
 </html> 
