@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>设备方向检测</title>
+    <title>设备方向与摇一摇检测</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,11 +30,36 @@
             color: #333;
             margin: 20px 0;
         }
+        .shake-counter {
+            font-size: 36px;
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+        }
+        .reset-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>设备方向检测</h1>
-    <button id="requestButton">点击启用方向检测</button>
+    <h1>设备方向与摇一摇检测</h1>
+    <button id="requestButton">点击启用检测</button>
+    
+    <div class="shake-counter">
+        <h2>摇一摇次数</h2>
+        <div id="shakeCount">0</div>
+        <button class="reset-button" id="resetButton">重置计数</button>
+    </div>
+
     <div id="orientation-status">当前方向：检测中...</div>
     <div class="data-container">
         <p>X轴旋转速度: <span id="x">0</span> rad/s</p>
@@ -49,22 +74,27 @@
     <script>
         const button = document.getElementById('requestButton');
         const orientationStatus = document.getElementById('orientation-status');
+        const resetButton = document.getElementById('resetButton');
         
+        let shakeCount = 0;
+        let lastX = 0, lastY = 0, lastZ = 0;
+        let lastUpdate = 0;
+        const shakeThreshold = 15;
+        const shakeTimeout = 1000;
+        let lastShake = 0;
+
         button.addEventListener('click', async () => {
             try {
-                // 请求权限
                 if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    // iOS 13+ 设备
                     const permission = await DeviceOrientationEvent.requestPermission();
                     if (permission === 'granted') {
-                        initializeOrientationDetection();
+                        initializeDetection();
                         button.style.display = 'none';
                     } else {
-                        alert('需要设备方向权限才能使用此功能');
+                        alert('需要设备权限才能使用此功能');
                     }
                 } else {
-                    // 非 iOS 设备
-                    initializeOrientationDetection();
+                    initializeDetection();
                     button.style.display = 'none';
                 }
             } catch (error) {
@@ -73,7 +103,12 @@
             }
         });
 
-        function initializeOrientationDetection() {
+        resetButton.addEventListener('click', () => {
+            shakeCount = 0;
+            document.getElementById('shakeCount').textContent = shakeCount;
+        });
+
+        function initializeDetection() {
             if (window.DeviceMotionEvent) {
                 window.addEventListener('devicemotion', handleMotion);
             }
@@ -83,6 +118,34 @@
         }
 
         function handleMotion(event) {
+            const currentTime = new Date().getTime();
+            const acceleration = event.accelerationIncludingGravity;
+            
+            if (!acceleration) return;
+
+            if ((currentTime - lastUpdate) > 100) {
+                const diffTime = currentTime - lastUpdate;
+                lastUpdate = currentTime;
+
+                const x = acceleration.x;
+                const y = acceleration.y;
+                const z = acceleration.z;
+
+                const speed = Math.abs(x + y + z - lastX - lastY - lastZ) / diffTime * 10000;
+
+                if (speed > shakeThreshold) {
+                    if (currentTime - lastShake > shakeTimeout) {
+                        shakeCount++;
+                        document.getElementById('shakeCount').textContent = shakeCount;
+                        lastShake = currentTime;
+                    }
+                }
+
+                lastX = x;
+                lastY = y;
+                lastZ = z;
+            }
+
             const rotationRate = event.rotationRate;
             if (rotationRate) {
                 document.getElementById('x').textContent = 
@@ -95,7 +158,6 @@
         }
 
         function handleOrientation(event) {
-            // 更新角度显示
             document.getElementById('alpha').textContent = 
                 event.alpha ? event.alpha.toFixed(2) : '不可用';
             document.getElementById('beta').textContent = 
@@ -103,9 +165,6 @@
             document.getElementById('gamma').textContent = 
                 event.gamma ? event.gamma.toFixed(2) : '不可用';
 
-            // 判断设备方向
-            // beta值接近90度时为竖屏
-            // beta值接近0度，gamma接近90或-90度时为横屏
             if (event.beta !== null && event.gamma !== null) {
                 const beta = Math.abs(event.beta);
                 const gamma = Math.abs(event.gamma);
