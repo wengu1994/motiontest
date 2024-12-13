@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>陀螺仪数据读取</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .data-container {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>陀螺仪数据</h1>
+    <div class="data-container">
+        <p>X轴旋转速度: <span id="x">0</span> rad/s</p>
+        <p>Y轴旋转速度: <span id="y">0</span> rad/s</p>
+        <p>Z轴旋转速度: <span id="z">0</span> rad/s</p>
+    </div>
+
+    <script>
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', handleMotion);
+        } else {
+            alert('您的设备不支持陀螺仪功能');
+        }
+
+        function handleMotion(event) {
+            const rotationRate = event.rotationRate;
+            if (rotationRate) {
+                document.getElementById('x').textContent = 
+                    rotationRate.alpha ? rotationRate.alpha.toFixed(2) : '不可用';
+                document.getElementById('y').textContent = 
+                    rotationRate.beta ? rotationRate.beta.toFixed(2) : '不可用';
+                document.getElementById('z').textContent = 
+                    rotationRate.gamma ? rotationRate.gamma.toFixed(2) : '不可用';
+            }
+        }
+    </script>
+</body>
+</html> 
