@@ -15,10 +15,20 @@
             border: 1px solid #ccc;
             border-radius: 5px;
         }
+        #requestButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <h1>陀螺仪数据</h1>
+    <button id="requestButton">点击启用陀螺仪</button>
     <div class="data-container">
         <p>X轴旋转速度: <span id="x">0</span> rad/s</p>
         <p>Y轴旋转速度: <span id="y">0</span> rad/s</p>
@@ -26,11 +36,34 @@
     </div>
 
     <script>
-        if (window.DeviceMotionEvent) {
-            window.addEventListener('devicemotion', handleMotion);
-        } else {
-            alert('您的设备不支持陀螺仪功能');
-        }
+        const button = document.getElementById('requestButton');
+        
+        button.addEventListener('click', async () => {
+            try {
+                // 请求权限
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    // iOS 13+ 设备
+                    const permission = await DeviceMotionEvent.requestPermission();
+                    if (permission === 'granted') {
+                        window.addEventListener('devicemotion', handleMotion);
+                        button.style.display = 'none';
+                    } else {
+                        alert('需要陀螺仪权限才能使用此功能');
+                    }
+                } else {
+                    // 非 iOS 设备
+                    if (window.DeviceMotionEvent) {
+                        window.addEventListener('devicemotion', handleMotion);
+                        button.style.display = 'none';
+                    } else {
+                        alert('您的设备不支持陀螺仪功能');
+                    }
+                }
+            } catch (error) {
+                console.error('Error requesting motion permission:', error);
+                alert('请求权限时出错，请确保使用 HTTPS 访问');
+            }
+        });
 
         function handleMotion(event) {
             const rotationRate = event.rotationRate;
